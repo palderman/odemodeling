@@ -307,6 +307,7 @@ StanModelWithCode <- R6::R6Class("StanModelWithCode",
     tparams = NULL,
     gqs = NULL,
     code = "",
+    cpp_code = "",
     get_model = function() {
       mod <- self$model
       if (is.null(mod)) {
@@ -320,7 +321,7 @@ StanModelWithCode <- R6::R6Class("StanModelWithCode",
       self[[type]]
     },
     initialize = function(code, dims, data, tdata, params, tparams, gqs,
-                          compile) {
+                          cpp_code, compile) {
       if (!compile) {
         message(
           "Not compiling the model. You need to call $reinit() before",
@@ -334,16 +335,18 @@ StanModelWithCode <- R6::R6Class("StanModelWithCode",
       self$params <- params
       self$tparams <- tparams
       self$gqs <- gqs
+      self$cpp_code <- cpp_code
       if (compile) {
-        self$model <- stan_model_from_code(code)
+        self$model <- stan_model_from_code(code, cpp_code)
       }
     },
     reinit = function() {
-      self$model <- stan_model_from_code(self$code)
+      self$model <- stan_model_from_code(self$code, self$cpp_code)
       invisible(self)
     },
     print = function() {
       cat_stancode(self$code)
+      # Add cat for cpp_code?
       invisible(self)
     },
     stan_file_exists = function() {
