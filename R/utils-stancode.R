@@ -24,7 +24,8 @@ generate_functions_block <- function(odefun_add_sign,
                                      odefun_add_args,
                                      odefun_body,
                                      loglik_add_sign,
-                                     loglik_body) {
+                                     loglik_body,
+                                     before_ode_funs = "") {
   odefun <- generate_odefun(odefun_add_sign, odefun_body)
   if (nchar(loglik_body) > 0) {
     loglik <- generate_loglik(loglik_add_sign, loglik_body)
@@ -36,7 +37,7 @@ generate_functions_block <- function(odefun_add_sign,
   odefun_add_args <- add_leading_comma(odefun_add_args)
   solvers <- fill_stancode_part(solvers, odefun_add_sign, "__ODEFUN_SIGN__")
   solvers <- fill_stancode_part(solvers, odefun_add_args, "__ODEFUN_ARGS__")
-  code <- generate_block("functions", c(odefun, solvers, loglik))
+  code <- generate_block("functions", c(before_ode_funs, odefun, solvers, loglik))
   autoformat_stancode(code)
 }
 

@@ -49,6 +49,7 @@ ode_model <- function(N,
                       loglik_vars = list(),
                       loglik_body = "",
                       other_vars = list(),
+                      before_ode_funs = "",
                       cpp_code = "",
                       verbose = FALSE,
                       compile = TRUE,
@@ -60,6 +61,7 @@ ode_model <- function(N,
   checkmate::assert_list(odefun_vars, choices_vars)
   checkmate::assert_list(loglik_vars, choices_vars)
   checkmate::assert_list(other_vars, choices_vars)
+  checkmate::assert_string(before_ode_funs, min.chars = 0)
   checkmate::assert_string(odefun_body, min.chars = 1)
   checkmate::assert_string(loglik_body, min.chars = 0)
 
@@ -175,7 +177,8 @@ ode_model <- function(N,
     odefun_add_args,
     odefun_body,
     loglik_add_signature,
-    loglik_body
+    loglik_body,
+    before_ode_funs
   )
 
   # Merge the blocks
