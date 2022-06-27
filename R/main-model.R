@@ -181,7 +181,8 @@ ode_model <- function(N,
     loglik_add_signature,
     loglik_body,
     before_ode_funs,
-    after_ode_funs
+    after_ode_funs,
+    allow_undefined = !identical(cpp_code, "")
   )
 
   # Merge the blocks

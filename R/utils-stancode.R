@@ -26,7 +26,8 @@ generate_functions_block <- function(odefun_add_sign,
                                      loglik_add_sign,
                                      loglik_body,
                                      before_ode_funs = "",
-                                     after_ode_funs = "") {
+                                     after_ode_funs = "",
+                                     allow_undefined = FALSE) {
   odefun <- generate_odefun(odefun_add_sign, odefun_body)
   if (nchar(loglik_body) > 0) {
     loglik <- generate_loglik(loglik_add_sign, loglik_body)
@@ -40,7 +41,7 @@ generate_functions_block <- function(odefun_add_sign,
   solvers <- fill_stancode_part(solvers, odefun_add_args, "__ODEFUN_ARGS__")
   code <- generate_block("functions", c(before_ode_funs, odefun, solvers,
                                         after_ode_funs, loglik))
-  autoformat_stancode(code)
+  autoformat_stancode(code, allow_undefined)
 }
 
 # Create additional signature for function
