@@ -51,6 +51,7 @@ ode_model <- function(N,
                       other_vars = list(),
                       before_ode_funs = "",
                       after_ode_funs = "",
+                      cpp_code = "",
                       verbose = FALSE,
                       compile = TRUE,
                       sig_figs = 18) {
@@ -188,11 +189,11 @@ ode_model <- function(N,
     funs_b, data_b, tdata_b, pars_b, tpars_b, model_b, gq_b,
     sep = "\n"
   )
-  code <- autoformat_stancode(code)
+  code <- autoformat_stancode(code, !identical(cpp_code, ""))
 
   # Create Stan model and create the OdeModel
   sm <- StanModelWithCode$new(
-    code, dims, data, tdata, params, tparams, gqs, compile
+    code, dims, data, tdata, params, tparams, gqs, cpp_code, compile
   )
   OdeModel$new(
     has_likelihood = has_loglik,

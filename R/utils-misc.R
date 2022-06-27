@@ -57,10 +57,44 @@ internal_assert_len <- function(vec, expected, source) {
   TRUE
 }
 
+# Define function for setting model namespace in custom header
+write_hpp_file <- function(stan_file, hpp_code){
+
+  # Extract model name
+  model_name <- gsub("\\.stan$", "",
+                     basename(stan_file)
+  )
+
+  # Create new hpp file name
+  hpp_file <- gsub("\\.stan", "_functions.hpp", stan_file)
+
+  # Replace current model namespace with model name from stan file
+  #   and write to new hpp file
+
+  write(c("#include <boost/math/tools/promotion.hpp>",
+          "#include <stan/math/rev/core.hpp>",
+          "#include <ostream>",
+          paste0("namespace ", model_name, "_model_namespace{"),
+          hpp_code,
+          "}"),
+        hpp_file)
+
+  return(hpp_file)
+}
+
 # Create Stan model from model code
-stan_model_from_code <- function(code) {
+stan_model_from_code <- function(code, cpp_code) {
   file <- cmdstanr::write_stan_file(code)
-  cmdstanr::cmdstan_model(file)
+  if(identical(cpp_code, "")){
+    cmdstanr::cmdstan_model(file)
+  }else{
+    hpp_file <- write_hpp_file(file, cpp_code)
+    cmdstanr::cmdstan_model(stan_file = file,
+                            include_paths = dirname(hpp_file),
+                            cpp_options = list(USER_HEADER = hpp_file),
+                            stanc_options = list("allow-undefined"))
+
+  }
 }
 
 # Colorize string
@@ -100,14 +134,16 @@ read_file_lines <- function(file) {
 }
 
 # Autoformat a 'Stan' code string
-autoformat_stancode <- function(code) {
+autoformat_stancode <- function(code, allow_undefined=FALSE) {
   tryCatch(
     {
       file <- cmdstanr::write_stan_file(code)
       model <- cmdstanr::cmdstan_model(file, compile = FALSE)
+      args <- c(model$stan_file(), "--auto-format")
+      if(allow_undefined) args <- c(args, "STANCFLAGS=--allow_undefined")
       res <- processx::run(
         file.path(cmdstanr::cmdstan_path(), "bin", "stanc"),
-        args = c(model$stan_file(), "--auto-format")
+        args = args
       )
       return(res$stdout)
     },
