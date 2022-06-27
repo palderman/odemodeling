@@ -24,7 +24,9 @@ generate_functions_block <- function(odefun_add_sign,
                                      odefun_add_args,
                                      odefun_body,
                                      loglik_add_sign,
-                                     loglik_body) {
+                                     loglik_body,
+                                     before_ode_funs = "",
+                                     after_ode_funs = "") {
   odefun <- generate_odefun(odefun_add_sign, odefun_body)
   if (nchar(loglik_body) > 0) {
     loglik <- generate_loglik(loglik_add_sign, loglik_body)
@@ -36,7 +38,8 @@ generate_functions_block <- function(odefun_add_sign,
   odefun_add_args <- add_leading_comma(odefun_add_args)
   solvers <- fill_stancode_part(solvers, odefun_add_sign, "__ODEFUN_SIGN__")
   solvers <- fill_stancode_part(solvers, odefun_add_args, "__ODEFUN_ARGS__")
-  code <- generate_block("functions", c(odefun, solvers, loglik))
+  code <- generate_block("functions", c(before_ode_funs, odefun, solvers,
+                                        after_ode_funs, loglik))
   autoformat_stancode(code)
 }
 
@@ -231,3 +234,132 @@ fill_stancode_part <- function(code, replacement, placeholder) {
   }
   gsub(pattern = placeholder, fixed = TRUE, x = code, replacement = replacement)
 }
+
+# Generate a call to the ODE solver
+generate_solver_call <- function(odefun_vars, y0_arg = "y0", t0_arg = "t0",
+                                 t_arg = "t", Nt_arg = "Nt"){
+
+  odefun_add_args <- generate_add_signature(odefun_vars, TRUE)
+
+  so_args <- paste("solver, rel_tol, abs_tol, max_num_steps, num_steps",
+                   y0_arg,
+                   t0_arg,
+                   t_arg,
+                   sep = ", ")
+
+  solve_ode_args <- append_to_signature(so_args, odefun_add_args)
+
+  code <- paste0("solve_ode(", solve_ode_args, ")")
+
+  return(code)
+}
+
+new_hpp_name <- function(stan_file){
+
+  # Create new hpp file name
+  return(gsub("\\.stan", "_functions.hpp", stan_file))
+
+}
+
+abs_path <- function(file_name){
+  if(substr(file_name, 1, 1) != "/"){
+    # stan_file is relative path
+    # convert to absolute path:
+    file_name <- file.path(getwd(), file_name)
+  }
+  return(file_name)
+}
+
+# Define function for setting model namespace in custom header
+write_custom_hpp <- function(stan_file, hpp_code){
+
+  # Convert relative path to absolute path:
+  stan_file <- abs_path(stan_file)
+
+  # Extract model name
+  model_name <- gsub("\\.stan$", "",
+                     basename(stan_file)
+                     )
+
+  # Create new hpp file name
+  hpp_file <- new_hpp_name(stan_file)
+
+  # Replace current model namespace with model name from stan file
+  #   and write to new hpp file
+
+  write(c("#include <boost/math/tools/promotion.hpp>",
+          "#include <stan/math/rev/core.hpp>",
+          "#include <ostream>",
+          paste0("namespace ", model_name, "_model_namespace{"),
+          hpp_code,
+          "}"),
+    hpp_file)
+
+  # Create cpp_options to be passed to cmdstan_model()
+  cpp_options <- list(USER_HEADER = hpp_file)
+
+  return(invisible(cpp_options))
+}
+
+up_to_date <- function(target, dependency){
+
+  # Get info on target file
+  t_info <- file.info(target)
+
+  # Get info on dependency
+  d_info <- file.info(dependency)
+
+  # Return TRUE if target modified time is after dependency modified time
+  return(d_info$mtime < t_info$mtime)
+
+}
+
+#' @export
+#'
+compile_cmdstan_model <- function(stan_code, hpp_code = "",
+                                  dir = NULL, model_name = NULL,
+                                  stanc_options = list("allow-undefined")){
+
+  if(is.null(dir)){
+    dir <- getOption("cmdstanr_write_stan_file_dir",
+                     tempdir())
+  }
+
+  if(is.null(model_name)){
+    stan_file_basename <- NULL
+  }else{
+    stan_file_basename <- paste0(model_name, ".stan")
+  }
+
+  stan_file <- cmdstanr::write_stan_file(code = stan_code,
+                                         dir = dir,
+                                         basename = stan_file_basename)
+
+  if(is.null(model_name)) model_name <- gsub("\\.stan$", "",
+                                             basename(stan_file))
+
+  exec_path <- gsub("\\.stan$", "", stan_file)
+
+  # Create new hpp file name
+  hpp_name <- new_hpp_name(stan_file)
+
+  stan_dir <- dirname(stan_file)
+
+  # Check target hpp file and update, if needed
+  cpp_options <- write_custom_hpp(stan_file, hpp_code)
+
+  if(file.exists(exec_path) &&
+     !up_to_date(exec_path, hpp_name)){
+    file.remove(exec_path)
+  }
+
+  include_paths <- dirname(cpp_options[["USER_HEADER"]])
+
+  model <- cmdstanr::cmdstan_model(stan_file = stan_file,
+                                   include_paths = include_paths,
+                                   cpp_options = cpp_options,
+                                   stanc_options = stanc_options)
+
+  return(model)
+}
+
