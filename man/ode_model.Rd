@@ -12,6 +12,8 @@ ode_model(
   loglik_vars = list(),
   loglik_body = "",
   other_vars = list(),
+  before_ode_funs = "",
+  after_ode_funs = "",
   verbose = FALSE,
   compile = TRUE,
   sig_figs = 18
