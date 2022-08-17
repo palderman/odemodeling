@@ -140,7 +140,7 @@ autoformat_stancode <- function(code, allow_undefined=FALSE) {
       file <- cmdstanr::write_stan_file(code)
       model <- cmdstanr::cmdstan_model(file, compile = FALSE)
       args <- c(model$stan_file(), "--auto-format")
-      if(allow_undefined) args <- c(args, "STANCFLAGS=--allow_undefined")
+      if(allow_undefined) args <- c(args, "--allow-undefined")
       res <- processx::run(
         file.path(cmdstanr::cmdstan_path(), "bin", "stanc"),
         args = args

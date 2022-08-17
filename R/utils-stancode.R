@@ -237,12 +237,15 @@ fill_stancode_part <- function(code, replacement, placeholder) {
 }
 
 # Generate a call to the ODE solver
-generate_solver_call <- function(odefun_vars, y0_arg = "y0", t0_arg = "t0",
+generate_solver_call <- function(odefun_vars,
+                                 num_steps_arg = "num_steps",
+                                 y0_arg = "y0", t0_arg = "t0",
                                  t_arg = "t", Nt_arg = "Nt"){
 
   odefun_add_args <- generate_add_signature(odefun_vars, TRUE)
 
-  so_args <- paste("solver, rel_tol, abs_tol, max_num_steps, num_steps",
+  so_args <- paste("solver, rel_tol, abs_tol, max_num_steps",
+                   num_steps_arg,
                    y0_arg,
                    t0_arg,
                    t_arg,
