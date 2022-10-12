@@ -360,8 +360,9 @@ compile_cmdstan_model <- function(stan_code, hpp_code = "",
   include_paths <- dirname(cpp_options[["USER_HEADER"]])
 
   model <- cmdstanr::cmdstan_model(stan_file = stan_file,
+                                   dir = dir,
                                    include_paths = include_paths,
-                                   cpp_options = cpp_options,
+                                   user_header = cpp_options[["USER_HEADER"]],
                                    stanc_options = stanc_options)
 
   return(model)
